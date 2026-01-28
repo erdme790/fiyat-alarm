@@ -1,26 +1,39 @@
 name: Fiyat Alarm
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"   # 30 dakikada bir
   workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"   # 6 saatte bir
 
 jobs:
-  run:
+  kontrol:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Repo klonla
+        uses: actions/checkout@v4
 
       - name: Python kur
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Paketleri kur
+      - name: Paketleri yükle
         run: |
           pip install requests beautifulsoup4
 
-      - name: Scripti çalıştır
+      - name: Fiyat kontrol
+        env:
+          MAIL_GONDEREN: ${{ secrets.MAIL_GONDEREN }}
+          MAIL_SIFRE: ${{ secrets.MAIL_SIFRE }}
+          MAIL_ALICI: ${{ secrets.MAIL_ALICI }}
         run: |
           python fiyat.py
+
+      - name: Fiyat dosyasını commit et
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add son_fiyat.json
+          git commit -m "Fiyat güncellendi" || echo "Değişiklik yok"
+          git push
