@@ -1,0 +1,26 @@
+name: Fiyat Alarm
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # 30 dakikada bir
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Paketleri kur
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Scripti çalıştır
+        run: |
+          python fiyat.py
