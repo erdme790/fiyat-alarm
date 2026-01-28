@@ -30,6 +30,15 @@ jobs:
         run: |
           python fiyat.py
 
+      - name: Debug dosyalarını yükle (ekran + html)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug
+          path: |
+            ekran.png
+            sayfa.html
+
       - name: Fiyat dosyasını kaydet
         run: |
           git config --global user.name "github-actions"
