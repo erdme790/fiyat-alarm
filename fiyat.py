@@ -1,29 +1,63 @@
 import requests
 from bs4 import BeautifulSoup
-import json
+import smtplib
+from email.mime.text import MIMEText
 import os
+import re
 
-URL = "BURAYA_ÜRÜN_LINKİ"
-DOSYA = "onceki_fiyat.json"
+URL = "BURAYA_URUN_LINKI"
+DOSYA = "fiyat.txt"
 
-html = requests.get(URL, headers={"User-Agent": "Mozilla/5.0"}).text
-soup = BeautifulSoup(html, "html.parser")
+MAIL = os.environ["MAIL"]
+SIFRE = os.environ["SIFRE"]
 
-fiyat_yazi = soup.find("fiyatspan").text.strip()
-fiyat = float(fiyat_yazi.replace(".", "").replace(",", "."))
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+r = requests.get(URL, headers=headers)
+soup = BeautifulSoup(r.text, "html.parser")
+
+# ⬇️ BURAYI SİTEYE GÖRE GÜNCELLE
+fiyat_yazi = soup.select_one("span.price").get_text(strip=True)
+
+print("Ham fiyat:", fiyat_yazi)
+
+fiyat = float(
+    re.sub(r"[^\d,]", "", fiyat_yazi)
+    .replace(".", "")
+    .replace(",", ".")
+)
 
 print("Güncel fiyat:", fiyat)
 
 if os.path.exists(DOSYA):
-    with open(DOSYA, "r") as f:
-        eski = json.load(f)["fiyat"]
-
-    if fiyat < eski:
-        print("🚨 FİYAT DÜŞTÜ! MAIL ATILDI (simülasyon)")
-    else:
-        print("❌ Fiyat düşmedi ama yine mail atıldı (simülasyon)")
+    with open(DOSYA) as f:
+        onceki = float(f.read())
 else:
-    print("İlk fiyat kaydedildi.")
+    onceki = fiyat
+
+mesaj_icerik = f"""
+Ürün kontrol edildi.
+
+Önceki fiyat: {onceki} ₺
+Güncel fiyat: {fiyat} ₺
+
+{URL}
+"""
+
+mesaj = MIMEText(mesaj_icerik)
+mesaj["Subject"] = "📦 Fiyat Kontrol Sonucu"
+mesaj["From"] = MAIL
+mesaj["To"] = MAIL
+
+s = smtplib.SMTP("smtp.gmail.com", 587)
+s.starttls()
+s.login(MAIL, SIFRE)
+s.send_message(mesaj)
+s.quit()
 
 with open(DOSYA, "w") as f:
-    json.dump({"fiyat": fiyat}, f)
+    f.write(str(fiyat))
+
+print("Mail gönderildi ✅")
